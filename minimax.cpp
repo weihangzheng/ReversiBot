@@ -6,8 +6,13 @@
 
 #include <time.h>
 
+#include <unordered_map>
+
 #include <stdlib.h>
+
+#include <string>
  //#include "lab8part2lib.h"
+using namespace std;
 
 void printBoard(char board[][26], int n);
 bool positionInBounds(int n, int row, int col);
@@ -32,6 +37,8 @@ void playerBot(char board[][26], int n, char colour, int legalMoves[676], int mo
 //from https://kartikkukreja.wordpress.com/2013/03/30/heuristic-function-for-reversiothello/
 //with modifications
 double heuristic(char grid[26][26], char comp);
+string hash_board(char simBoard[][26], int n);
+unordered_map < string, int > transposition_table;
 
 int main(int argc, char ** argv) {
   //srand(time(NULL));
@@ -317,12 +324,29 @@ void randomBot(char board[][26], int n, int validMoves[676], int moveCount, char
   makeMove(board, n, colour, decidedMove, true);
 }
 
+string hash_board(char simBoard[][26], int n) {
+  string output = " ";
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++)
+      output += simBoard[i][j];
+  }
+  return output;
+}
+
 int negamax(char simBoard[][26], int n, int validMoves[676], int moveCount, char colour, int a, int b, double timeLeft) {
   //base case
   //if(countPieces(simBoard, n, 'B') + countPieces(simBoard, n, 'W') == n*n)
   //  return 10000*countEndPieces(simBoard, n, colour);
-  if (timeLeft <= 0.00001)
-    return heuristic(simBoard, colour);
+  string hash = hash_board(simBoard, n);
+  if (transposition_table.find(hash) != transposition_table.end())
+    return transposition_table[hash];
+
+  if (timeLeft <= 0.00001) {
+    int score = heuristic(simBoard, colour);
+    transposition_table[hash] = score;
+    return score;
+  }
+
   int value = -9999999;
   //save the current node
   char savedBoard[8][8];
@@ -396,6 +420,8 @@ int negamax(char simBoard[][26], int n, int validMoves[676], int moveCount, char
       }
     }
   }
+
+  transposition_table[hash] = value;
   return value;
 }
 
@@ -417,6 +443,7 @@ int max(int a, int b) {
 void WeihangBot(char comp, int legalMoves[676], int moveCount, int n, char board[][26]) {
   int highestScore = -999999999;
   int index = 0;
+  transposition_table.clear();
   for (int i = 0; i < moveCount; i++) {
     int score = 0;
 
